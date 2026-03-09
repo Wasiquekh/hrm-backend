@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
 
@@ -11,14 +11,9 @@ services:
       POSTGRES_PASSWORD: wasique@321
       POSTGRES_DB: postgres
     ports:
-      - "5532:5432"   # FIXED
+      - "5532:5432"
     volumes:
       - hrm_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
 
   backend:
     build: .
@@ -29,26 +24,16 @@ services:
 
     environment:
       NODE_ENV: production
-      HRM_APIGATEWAY_PORT: 8790
-      JWT_SECRET: ""
+      PORT: 8790
 
-      # DB Writer
-      PGHOST_WRITER: db
-      PGPORT_WRITER: 5432
-      PGUSER_WRITER: postgres
-      PGPASSWORD_WRITER: wasique@321
-      PGDATABASE_WRITER: postgres
-
-      # DB Reader
-      PGHOST_READER: db
-      PGPORT_READER: 5432
-      PGUSER_READER: postgres
-      PGPASSWORD_READER: wasique@321
-      PGDATABASE_READER: postgres
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: wasique@321
+      DB_NAME: postgres
 
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
 volumes:
   hrm_pgdata:
