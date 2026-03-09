@@ -9,7 +9,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: wasique@321
-      POSTGRES_DB: postgres
+      POSTGRES_DB: hrm_backend
     ports:
       - "5532:5432"
     volumes:
@@ -30,7 +30,9 @@ services:
       DB_PORT: 5432
       DB_USER: postgres
       DB_PASSWORD: wasique@321
-      DB_NAME: postgres
+      DB_NAME: hrm_backend
+
+      AWS_S3_BUCKET_NAME: hrm-bucket-09876
 
     depends_on:
       - db
