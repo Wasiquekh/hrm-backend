@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  hrm-backend:
+    build: .
+    container_name: hrm-backend
+    ports:
+      - "8790:8790"
+    environment:
+      - NODE_ENV=production
+    restart: always
