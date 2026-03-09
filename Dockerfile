@@ -1,18 +1,20 @@
-# -------- Stage 1: Build --------
+# -------- Build Stage --------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
 
+# install all deps (including dev for tsc)
 RUN npm ci
 
 COPY . .
 
-RUN npm run build
+# build typescript
+RUN npx tsc
 
 
-# -------- Stage 2: Production --------
+# -------- Production Stage --------
 FROM node:20-alpine
 
 WORKDIR /app
@@ -22,14 +24,17 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY package*.json ./
 
+# install only production deps
 RUN npm ci --omit=dev
 
+# copy build files from builder
 COPY --from=builder /app/dist ./dist
 
+# change ownership
 RUN chown -R appuser:appgroup /app
 
 USER appuser
 
 EXPOSE 8790
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server.js"]
