@@ -1,17 +1,19 @@
 version: '3.8'
 
 services:
+
   db:
     image: postgres:14
+    container_name: hrm-postgres
     restart: always
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "wasique@321"
-      POSTGRES_DB: "postgres"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: wasique@321
+      POSTGRES_DB: postgres
     ports:
-      - "5532:5532"
+      - "5532:5432"   # FIXED
     volumes:
-      - compress_pgdata:/var/lib/postgresql/data
+      - hrm_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -20,25 +22,26 @@ services:
 
   backend:
     build: .
+    container_name: hrm-backend
+    restart: always
     ports:
       - "8790:8790"
+
     environment:
       NODE_ENV: production
       HRM_APIGATEWAY_PORT: 8790
-
-      # --- Add your application secrets here ---
       JWT_SECRET: ""
 
-      # Writer DB config
+      # DB Writer
       PGHOST_WRITER: db
-      PGPORT_WRITER: 5532
+      PGPORT_WRITER: 5432
       PGUSER_WRITER: postgres
       PGPASSWORD_WRITER: wasique@321
       PGDATABASE_WRITER: postgres
 
-      # Reader DB config
+      # DB Reader
       PGHOST_READER: db
-      PGPORT_READER: 5532
+      PGPORT_READER: 5432
       PGUSER_READER: postgres
       PGPASSWORD_READER: wasique@321
       PGDATABASE_READER: postgres
@@ -46,9 +49,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./uploads:/usr/src/app/uploads
-      - ./config:/usr/src/app/config
 
 volumes:
   hrm_pgdata:
