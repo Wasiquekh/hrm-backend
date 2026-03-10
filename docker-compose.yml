@@ -1,41 +1,57 @@
-version: "3.8"
+version: "3.9"
 
 services:
-
   db:
     image: postgres:14
-    container_name: hrm-postgres
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: wasique@321
-      POSTGRES_DB: hrm_backend
+    env_file:
+      - .env
     ports:
       - "5532:5432"
     volumes:
       - hrm_pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: .
-    container_name: hrm-backend
-    restart: always
+    restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - "8790:8790"
-
+      - "127.0.0.1:8790:8790"
     environment:
-      NODE_ENV: production
-      PORT: 8790
+      HOST: "0.0.0.0"
 
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: wasique@321
-      DB_NAME: hrm_backend
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
 
-      AWS_S3_BUCKET_NAME: hrm-bucket-09876
+      PORT: ${PORT}
+      NODE_ENV: ${NODE_ENV}
+
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${AWS_REGION}
+      AWS_S3_BUCKET_NAME: ${AWS_S3_BUCKET_NAME}
+      BASE_URL: ${BASE_URL}
 
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+
+    volumes:
+      - ./uploads:/usr/src/app/uploads
+      - ./config:/usr/src/app/config
 
 volumes:
   hrm_pgdata:
