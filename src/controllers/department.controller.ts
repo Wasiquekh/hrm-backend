@@ -206,10 +206,10 @@ export const deleteDepartment = async (req: Request, res: Response) => {
 
     const department = (departments as any[])[0];
 
-    // Check if department is used by any employee
+    // Check if department is used by any employee - FIXED: use department_id
     const employees = await sequelize.query(
-      `SELECT id FROM employees WHERE department = :deptName LIMIT 1`,
-      { replacements: { deptName: department.name }, type: 'SELECT' }
+      `SELECT id FROM employees WHERE department_id = :deptId LIMIT 1`,
+      { replacements: { deptId: id }, type: 'SELECT' }
     );
 
     if ((employees as any[]).length > 0) {
