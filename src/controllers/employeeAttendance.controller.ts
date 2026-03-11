@@ -1,15 +1,26 @@
 import { Request, Response } from 'express';
-import { Op } from 'sequelize';
 import { v4 as uuidv4 } from 'uuid';
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import s3Client, { BUCKET, BASE_URL } from '../config/s3';
 import sequelize from '../config/database';
-import EmployeeAttendance from '../models/EmployeeAttendance.model';
 import multer from 'multer';
-import * as yup from 'yup';
 
 interface AuthRequest extends Request {
   user?: any;
+}
+
+// Define interface for attendance record
+interface AttendanceRecord {
+  id: string;
+  employee_id: string;
+  attendance_date: string;
+  punch_in_time: Date | null;
+  punch_in_image_url: string | null;
+  punch_out_time: Date | null;
+  punch_out_image_url: string | null;
+  total_working_hours: number | null;
+  created_at?: Date;
+  updated_at?: Date;
 }
 
 // Multer config
@@ -84,13 +95,18 @@ export const punchIn = async (req: AuthRequest, res: Response) => {
 
       console.log('📍 Punch In - Employee:', employee_id, 'Date:', today);
 
-      // Check existing
-      const existing = await EmployeeAttendance.findOne({
-        where: { employee_id, attendance_date: today },
-        transaction
-      });
+      // Check existing using raw query
+      const [existing] = await sequelize.query(
+        `SELECT id FROM employee_attendance 
+         WHERE employee_id = :employee_id AND attendance_date = :today 
+         LIMIT 1`,
+        {
+          replacements: { employee_id, today },
+          transaction
+        }
+      );
 
-      if (existing) {
+      if (Array.isArray(existing) && existing.length > 0) {
         await transaction.rollback();
         return res.status(400).json({ 
           success: false, 
@@ -110,14 +126,26 @@ export const punchIn = async (req: AuthRequest, res: Response) => {
         ContentType: file.mimetype,
       }));
 
-      // Save in DB
-      const attendance = await EmployeeAttendance.create({
-        id: uuidv4(),
-        employee_id,
-        attendance_date: today,
-        punch_in_time: getISTTimeForDB(),
-        punch_in_image_url: `${BASE_URL}/${fileName}`,
-      }, { transaction });
+      const imageUrl = `${BASE_URL}/${fileName}`;
+      const id = uuidv4();
+      const punchInTime = getISTTimeForDB();
+
+      // Save in DB using raw query
+      await sequelize.query(
+        `INSERT INTO employee_attendance 
+         (id, employee_id, attendance_date, punch_in_time, punch_in_image_url, created_at, updated_at) 
+         VALUES (:id, :employee_id, :attendance_date, :punch_in_time, :punch_in_image_url, NOW(), NOW())`,
+        {
+          replacements: {
+            id,
+            employee_id,
+            attendance_date: today,
+            punch_in_time: punchInTime,
+            punch_in_image_url: imageUrl
+          },
+          transaction
+        }
+      );
 
       await transaction.commit();
       
@@ -125,11 +153,10 @@ export const punchIn = async (req: AuthRequest, res: Response) => {
         success: true, 
         message: 'Punch in successful', 
         data: {
-          id: attendance.id,
-          date: attendance.attendance_date,
-          punch_in_time: attendance.punch_in_time,
-          punch_in_time_ist: formatISTForResponse(attendance.punch_in_time),
-          // punch_in_image: attendance.punch_in_image_url
+          id,
+          date: today,
+          punch_in_time: punchInTime,
+          punch_in_time_ist: formatISTForResponse(punchInTime),
         }
       });
 
@@ -170,11 +197,21 @@ export const punchOut = async (req: AuthRequest, res: Response) => {
 
       console.log('📍 Punch Out - Employee:', employee_id, 'Date:', today);
 
-      // Find today's record
-      const attendance = await EmployeeAttendance.findOne({
-        where: { employee_id, attendance_date: today },
-        transaction
-      });
+      // Find today's record using raw query
+      const [attendanceRecords] = await sequelize.query(
+        `SELECT id, punch_in_time, punch_out_time 
+         FROM employee_attendance 
+         WHERE employee_id = :employee_id AND attendance_date = :today 
+         LIMIT 1`,
+        {
+          replacements: { employee_id, today },
+          transaction
+        }
+      );
+
+      const attendance = Array.isArray(attendanceRecords) && attendanceRecords.length > 0 
+        ? (attendanceRecords[0] as AttendanceRecord)
+        : null;
 
       if (!attendance) {
         await transaction.rollback();
@@ -204,36 +241,63 @@ export const punchOut = async (req: AuthRequest, res: Response) => {
         ContentType: file.mimetype,
       }));
 
-      // Update record
-      attendance.punch_out_time = getISTTimeForDB();
-      attendance.punch_out_image_url = `${BASE_URL}/${fileName}`;
+      const imageUrl = `${BASE_URL}/${fileName}`;
+      const punchOutTime = getISTTimeForDB();
       
-      // 🔥 FIXED CALCULATION - 3 decimal places
-      const punchInTime = attendance.punch_in_time!.getTime();
-      const punchOutTime = attendance.punch_out_time.getTime();
-      const diffMs = punchOutTime - punchInTime;
+      // Calculate working hours
+      const punchInTime = new Date(attendance.punch_in_time!).getTime();
+      const punchOutTimeMs = punchOutTime.getTime();
+      const diffMs = punchOutTimeMs - punchInTime;
       const diffHours = diffMs / (1000 * 60 * 60);
-      attendance.total_working_hours = Math.round(diffHours * 1000) / 1000;
+      const totalWorkingHours = Math.round(diffHours * 1000) / 1000;
       
-      console.log('✅ Hours:', attendance.total_working_hours);
-      
-      await attendance.save({ transaction });
+      console.log('✅ Hours:', totalWorkingHours);
+
+      // Update record using raw query
+      await sequelize.query(
+        `UPDATE employee_attendance 
+         SET punch_out_time = :punch_out_time, 
+             punch_out_image_url = :punch_out_image_url, 
+             total_working_hours = :total_working_hours,
+             updated_at = NOW()
+         WHERE id = :id`,
+        {
+          replacements: {
+            id: attendance.id,
+            punch_out_time: punchOutTime,
+            punch_out_image_url: imageUrl,
+            total_working_hours: totalWorkingHours
+          },
+          transaction
+        }
+      );
+
       await transaction.commit();
+      
+      // Fetch updated record for response
+      const [updatedRecords] = await sequelize.query(
+        `SELECT * FROM employee_attendance WHERE id = :id LIMIT 1`,
+        {
+          replacements: { id: attendance.id }
+        }
+      );
+
+      const updatedAttendance = Array.isArray(updatedRecords) && updatedRecords.length > 0 
+        ? (updatedRecords[0] as AttendanceRecord)
+        : null;
       
       res.json({ 
         success: true, 
         message: 'Punch out successful', 
         data: {
-          id: attendance.id,
-          date: attendance.attendance_date,
-          punch_in_time: attendance.punch_in_time,
-          punch_in_time_ist: formatISTForResponse(attendance.punch_in_time),
-          punch_out_time: attendance.punch_out_time,
-          punch_out_time_ist: formatISTForResponse(attendance.punch_out_time),
-          total_hours: attendance.total_working_hours,
-          total_hours_formatted: formatHoursToReadable(attendance.total_working_hours),
-          // punch_in_image: attendance.punch_in_image_url,
-          // punch_out_image: attendance.punch_out_image_url
+          id: updatedAttendance?.id,
+          date: updatedAttendance?.attendance_date,
+          punch_in_time: updatedAttendance?.punch_in_time,
+          punch_in_time_ist: formatISTForResponse(updatedAttendance?.punch_in_time || null),
+          punch_out_time: updatedAttendance?.punch_out_time,
+          punch_out_time_ist: formatISTForResponse(updatedAttendance?.punch_out_time || null),
+          total_hours: updatedAttendance?.total_working_hours,
+          total_hours_formatted: formatHoursToReadable(updatedAttendance?.total_working_hours || null),
         }
       });
 
@@ -254,13 +318,20 @@ export const getTodayStatus = async (req: AuthRequest, res: Response) => {
     const employee_id = req.user.id;
     const today = getISTDate();
 
-    const attendance = await EmployeeAttendance.findOne({
-      where: { employee_id, attendance_date: today },
-      attributes: [
-        'id', 'attendance_date', 'punch_in_time', 'punch_out_time',
-        'punch_in_image_url', 'punch_out_image_url', 'total_working_hours'
-      ]
-    });
+    const [attendanceRecords] = await sequelize.query(
+      `SELECT id, attendance_date, punch_in_time, punch_out_time,
+              punch_in_image_url, punch_out_image_url, total_working_hours
+       FROM employee_attendance 
+       WHERE employee_id = :employee_id AND attendance_date = :today 
+       LIMIT 1`,
+      {
+        replacements: { employee_id, today }
+      }
+    );
+
+    const attendance = Array.isArray(attendanceRecords) && attendanceRecords.length > 0 
+      ? (attendanceRecords[0] as AttendanceRecord)
+      : null;
 
     res.json({
       success: true,
@@ -268,14 +339,14 @@ export const getTodayStatus = async (req: AuthRequest, res: Response) => {
         date: today,
         punched_in: !!attendance?.punch_in_time,
         punched_out: !!attendance?.punch_out_time,
-        punch_in_time: attendance?.punch_in_time,
+        punch_in_time: attendance?.punch_in_time || null,
         punch_in_time_ist: formatISTForResponse(attendance?.punch_in_time || null),
-        punch_out_time: attendance?.punch_out_time,
+        punch_out_time: attendance?.punch_out_time || null,
         punch_out_time_ist: formatISTForResponse(attendance?.punch_out_time || null),
         total_hours: attendance?.total_working_hours || 0,
         total_hours_formatted: formatHoursToReadable(attendance?.total_working_hours || 0),
-        punch_in_image: attendance?.punch_in_image_url,
-        punch_out_image: attendance?.punch_out_image_url
+        punch_in_image: attendance?.punch_in_image_url || null,
+        punch_out_image: attendance?.punch_out_image_url || null
       }
     });
 
@@ -319,32 +390,34 @@ export const getMonthlyAttendance = async (req: AuthRequest, res: Response) => {
 
     console.log(`📊 Fetching ${startDate} to ${endDate}`);
 
-    // Get records
-    const records = await EmployeeAttendance.findAll({
-      where: {
-        employee_id,
-        attendance_date: { [Op.between]: [startDate, endDate] }
-      },
-      order: [['attendance_date', 'DESC']],
-      attributes: [
-        'attendance_date', 'punch_in_time', 'punch_out_time',
-        'punch_in_image_url', 'punch_out_image_url', 'total_working_hours'
-      ]
-    });
+    // Get records using raw query
+    const [records] = await sequelize.query(
+      `SELECT attendance_date, punch_in_time, punch_out_time,
+              punch_in_image_url, punch_out_image_url, total_working_hours
+       FROM employee_attendance 
+       WHERE employee_id = :employee_id 
+         AND attendance_date BETWEEN :startDate AND :endDate
+       ORDER BY attendance_date DESC`,
+      {
+        replacements: { employee_id, startDate, endDate }
+      }
+    );
+
+    const attendanceRecords = Array.isArray(records) ? records as AttendanceRecord[] : [];
 
     // Calculate summary
-    const totalDays = records.length;
-    const presentDays = records.filter(r => r.punch_out_time).length;
-    const halfDays = records.filter(r => r.punch_in_time && !r.punch_out_time).length;
+    const totalDays = attendanceRecords.length;
+    const presentDays = attendanceRecords.filter((r: AttendanceRecord) => r.punch_out_time).length;
+    const halfDays = attendanceRecords.filter((r: AttendanceRecord) => r.punch_in_time && !r.punch_out_time).length;
     
     let totalHours = 0;
-    if (records.length > 0) {
-      totalHours = records.reduce((sum, r) => sum + (Number(r.total_working_hours) || 0), 0);
+    if (attendanceRecords.length > 0) {
+      totalHours = attendanceRecords.reduce((sum: number, r: AttendanceRecord) => sum + (Number(r.total_working_hours) || 0), 0);
     }
     totalHours = Math.round(totalHours * 1000) / 1000;
 
     // Format records
-    const formattedRecords = records.map(record => ({
+    const formattedRecords = attendanceRecords.map((record: AttendanceRecord) => ({
       attendance_date: record.attendance_date,
       punch_in_time: record.punch_in_time,
       punch_in_time_ist: formatISTForResponse(record.punch_in_time),
