@@ -129,7 +129,7 @@ export const punchIn = async (req: AuthRequest, res: Response) => {
           date: attendance.attendance_date,
           punch_in_time: attendance.punch_in_time,
           punch_in_time_ist: formatISTForResponse(attendance.punch_in_time),
-          punch_in_image: attendance.punch_in_image_url
+          // punch_in_image: attendance.punch_in_image_url
         }
       });
 
@@ -232,8 +232,8 @@ export const punchOut = async (req: AuthRequest, res: Response) => {
           punch_out_time_ist: formatISTForResponse(attendance.punch_out_time),
           total_hours: attendance.total_working_hours,
           total_hours_formatted: formatHoursToReadable(attendance.total_working_hours),
-          punch_in_image: attendance.punch_in_image_url,
-          punch_out_image: attendance.punch_out_image_url
+          // punch_in_image: attendance.punch_in_image_url,
+          // punch_out_image: attendance.punch_out_image_url
         }
       });
 
