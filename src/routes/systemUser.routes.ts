@@ -24,7 +24,7 @@ import {
   updateDesignation,
   deleteDesignation
 } from '../controllers/designation.controller';
-import { authenticate } from '../middleware/auth.middleware';  // 👈 Import auth middleware
+import { authenticate } from '../middleware/auth.middleware';
 import { generateEmployeeIDCard } from '../controllers/idCard.controller';
 import {
   createHoliday,
@@ -52,17 +52,16 @@ import {
   getMonthlyAttendance,
 } from '../controllers/employeeAttendance.controller';
 
-
 const router = Router();
 
 // ========== PUBLIC ROUTES (No Token Required) ==========
 router.post('/login', login);                    // POST /api/login
 router.post('/generate-qr', generateQR);          // POST /api/generate-qr
 router.post('/verify-totp', verifyTOTP);          // POST /api/verify-totp
-router.post('/employee/login', employeeLogin);
+router.post('/employee/login', employeeLogin);    // ✅ PUBLIC - Only login
 
 // ========== APPLY AUTH MIDDLEWARE TO ALL ROUTES BELOW ==========
-router.use(authenticate);  // 👈 1 LINE MEIN SAB PROTECTED
+router.use(authenticate);  // 👈 Ab sab routes protected
 
 // ========== PROTECTED USER ROUTES ==========
 router.post('/users', createUser);                // POST /api/users
@@ -104,20 +103,19 @@ router.get('/holidays/:id', getHolidayById);        // GET /api/holidays/:id
 router.put('/holidays/:id', updateHoliday);         // PUT /api/holidays/:id
 router.delete('/holidays/:id', deleteHoliday);      // DELETE /api/holidays/:id
 
+// ========== ATTENDANCE ROUTES (Protected) ==========
 router.post('/attendance', markAttendance);                    // POST /api/attendance
 router.post('/attendance/bulk', bulkMarkAttendance);            // POST /api/attendance/bulk
-router.get('/attendance/range', getAttendanceByDateRange);      // GET /api/attendance/range?start_date=2024-01-01&end_date=2024-01-31
-router.get('/attendance/month', getAttendanceByMonth);          // GET /api/attendance/month?year=2024&month=1
-router.get('/attendance/summary', getEmployeeAttendanceSummary); // GET /api/attendance/summary?employee_id=uuid&year=2024&month=1
+router.get('/attendance/range', getAttendanceByDateRange);      // GET /api/attendance/range
+router.get('/attendance/month', getAttendanceByMonth);          // GET /api/attendance/month
+router.get('/attendance/summary', getEmployeeAttendanceSummary); // GET /api/attendance/summary
 router.put('/attendance/:id', updateAttendance);                // PUT /api/attendance/:id
 router.delete('/attendance/:id', deleteAttendance);             // DELETE /api/attendance/:id
 
-// Employee Attendance Routes
-router.post('/employee/punch-in', punchIn);
-router.post('/employee/punch-out', punchOut);
-router.get('/employee/today-status', getTodayStatus);
-router.get('/employee/monthly-attendance', getMonthlyAttendance);
-
-
+// ========== EMPLOYEE ATTENDANCE ROUTES (Protected) ==========
+router.post('/employee/punch-in', punchIn);              // ✅ PROTECTED
+router.post('/employee/punch-out', punchOut);            // ✅ PROTECTED
+router.get('/employee/today-status', getTodayStatus);    // ✅ PROTECTED
+router.get('/employee/monthly-attendance', getMonthlyAttendance); // ✅ PROTECTED
 
 export default router;
