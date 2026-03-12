@@ -13,7 +13,7 @@ const createOfferSchema = yup.object({
     .string()
     .email("Invalid email format")
     .required("Email is required"),
-  phone: yup.string().nullable(),
+  phone: yup.string(),
   job_title: yup.string().required("Job title is required"),
   department_id: yup
     .string()
@@ -28,44 +28,41 @@ const createOfferSchema = yup.object({
     .required("Salary is required")
     .positive("Salary must be positive"),
   offer_date: yup.date().required("Offer date is required"),
-  joining_date: yup.date().nullable(),
+  joining_date: yup.date(),
   reporting_manager: yup.string().required("Reporting manager is required"),
   work_location: yup.string().required("Work location is required"),
   offer_status: yup
     .string()
     .oneOf(["Pending", "Accepted", "Rejected", "Expired"])
     .default("Pending"),
-  created_by: yup.string().nullable().uuid("Invalid user ID"),
+  created_by: yup.string().uuid("Invalid user ID"),
 });
 
-// Update Validation Schema
+// Update Validation Schema - NO NULLABLE
 const updateOfferSchema = yup.object({
-  first_name: yup.string().optional(),
-  last_name: yup.string().optional(),
-  email: yup.string().email("Invalid email format").optional(),
-  phone: yup.string().nullable().optional(),
-  job_title: yup.string().optional(),
-  department_id: yup.string().uuid("Invalid department ID").optional(),
+  first_name: yup.string(),
+  last_name: yup.string(),
+  email: yup.string().email("Invalid email format"),
+  phone: yup.string(),
+  job_title: yup.string(),
+  department_id: yup.string().uuid("Invalid department ID"),
   employment_type: yup
     .string()
-    .oneOf(["Full-time", "Part-time", "Contract", "Internship"])
-    .optional(),
-  offered_salary: yup.number().positive("Salary must be positive").optional(),
-  offer_date: yup.date().optional(),
-  joining_date: yup.date().nullable().optional(),
-  reporting_manager: yup.string().optional(),
-  work_location: yup.string().optional(),
+    .oneOf(["Full-time", "Part-time", "Contract", "Internship"]),
+  offered_salary: yup.number().positive("Salary must be positive"),
+  offer_date: yup.date(),
+  joining_date: yup.date(),
+  reporting_manager: yup.string(),
+  work_location: yup.string(),
   offer_status: yup
     .string()
-    .oneOf(["Pending", "Accepted", "Rejected", "Expired"])
-    .optional(),
-  updated_by: yup.string().nullable().uuid("Invalid user ID"),
+    .oneOf(["Pending", "Accepted", "Rejected", "Expired"]),
+  updated_by: yup.string().uuid("Invalid user ID"),
 });
 
 // ==================== 1. CREATE ====================
 export const createOfferLetter = async (req: Request, res: Response) => {
   try {
-    // Validate request body
     await createOfferSchema.validate(req.body, { abortEarly: false });
 
     const {
@@ -125,7 +122,7 @@ export const createOfferLetter = async (req: Request, res: Response) => {
           reporting_manager,
           work_location,
           offer_status: offer_status || "Pending",
-          created_by,
+          created_by: created_by || null,
         },
       },
     );
@@ -217,12 +214,12 @@ export const updateOfferLetter = async (req: Request, res: Response) => {
     const { id } = req.params;
     const data = req.body;
 
-    // Validate request body
+    // Validate - only check fields that are present
     await updateOfferSchema.validate(data, { abortEarly: false });
 
     // Check if exists
     const offers = await sequelize.query(
-      `SELECT id FROM offer_letters WHERE id = :id`,
+      `SELECT id, email FROM offer_letters WHERE id = :id`,
       { replacements: { id }, type: "SELECT" },
     );
 
@@ -232,8 +229,10 @@ export const updateOfferLetter = async (req: Request, res: Response) => {
         .json({ success: false, message: "Offer letter not found" });
     }
 
+    const existingOffer = (offers as any[])[0];
+
     // Check email if being updated
-    if (data.email) {
+    if (data.email && data.email !== existingOffer.email) {
       const existing = await sequelize.query(
         `SELECT id FROM offer_letters WHERE email = :email AND id != :id`,
         { replacements: { email: data.email, id }, type: "SELECT" },
@@ -246,7 +245,7 @@ export const updateOfferLetter = async (req: Request, res: Response) => {
       }
     }
 
-    // Dynamic update - only fields that are provided
+    // Build dynamic update query
     const updateFields = [];
     const replacements: any = { id };
 
@@ -280,7 +279,8 @@ export const updateOfferLetter = async (req: Request, res: Response) => {
 
     updateFields.push("updated_at = NOW()");
 
-    if (updateFields.length === 0) {
+    if (updateFields.length === 1) {
+      // sirf updated_at hai
       return res.status(400).json({
         success: false,
         message: "No fields to update",
@@ -323,7 +323,6 @@ export const deleteOfferLetter = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // Check if exists
     const offers = await sequelize.query(
       `SELECT id FROM offer_letters WHERE id = :id`,
       { replacements: { id }, type: "SELECT" },
