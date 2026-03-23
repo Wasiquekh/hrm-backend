@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import sequelize from "../config/database";
 import * as yup from "yup";
+import { generateOfferLetterPDF } from "../services/pdf/offerLetterService";
 
 // ==================== VALIDATION SCHEMAS ====================
 
@@ -347,5 +348,33 @@ export const deleteOfferLetter = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Delete error:", error);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+// ==================== 6. GENERATE PDF ====================
+export const generateOfferLetterPDFController = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    // Fix: Convert id to string to handle both string and string[] types
+    const id = String(req.params.id);
+
+    // Optional: Validate if id is not empty
+    if (!id || id === "undefined" || id === "null") {
+      return res.status(400).json({
+        success: false,
+        message: "Valid offer letter ID is required",
+      });
+    }
+
+    await generateOfferLetterPDF(id, res);
+  } catch (error) {
+    console.error("PDF Generation error:", error);
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to generate PDF" });
+    }
   }
 };

@@ -64,6 +64,7 @@ import {
   getOfferLetterById,
   updateOfferLetter,
   deleteOfferLetter,
+  generateOfferLetterPDFController,
 } from "../controllers/OfferLetterController";
 
 const router = Router();
@@ -138,5 +139,8 @@ router.get("/offer-letters", getAllOfferLetters); // GET /api/offer-letters
 router.get("/offer-letters/:id", getOfferLetterById); // GET /api/offer-letters/:id
 router.put("/offer-letters/:id", updateOfferLetter); // PUT /api/offer-letters/:id
 router.delete("/offer-letters/:id", deleteOfferLetter); // DELETE /api/offer-letters/:id
+
+// ========== OFFER LETTER PDF GENERATION ==========
+router.get("/offer-letters/:id/pdf", generateOfferLetterPDFController);
 
 export default router;

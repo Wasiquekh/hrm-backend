@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OFFER LETTER</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 10px;
+        color: #000;
+        margin: 20px;
+      }
+      .page {
+        border: 2px solid #111;
+        border-radius: 10px;
+        padding: 20px;
+        background: #fff;
+      }
+      .hdr-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 0 10px 0;
+      }
+      .hdr-left {
+        flex: 1;
+        padding-right: 18px;
+      }
+      .hdr-divider {
+        width: 1px;
+        background: #111;
+        margin: 0 10px;
+        align-self: stretch;
+      }
+      .hdr-right img {
+        width: 100px;
+        height: auto;
+        object-fit: contain;
+      }
+      .text-center {
+        text-align: center;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .info td {
+        border: 1px solid #000;
+        padding: 8px 10px;
+        vertical-align: top;
+      }
+      .info td b {
+        text-transform: uppercase;
+      }
+      .section-title {
+        font-weight: bold;
+        font-size: 11px;
+        margin-top: 15px;
+        margin-bottom: 8px;
+        text-decoration: underline;
+      }
+      .signature-section {
+        margin-top: 40px;
+      }
+      .signature-block {
+        margin-top: 20px;
+      }
+      .signature-line {
+        border-top: 1px solid #000;
+        width: 250px;
+        margin-top: 5px;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 9px;
+        color: #555;
+        text-align: center;
+      }
+      .terms-list {
+        margin: 8px 0 8px 20px;
+      }
+      .terms-list li {
+        margin: 4px 0;
+      }
+      .highlight {
+        font-weight: bold;
+        background-color: #f0f8ff;
+        padding: 2px 4px;
+      }
+      .company-details {
+        margin-top: 10px;
+        font-size: 9px;
+        line-height: 1.4;
+      }
+      .offer-details {
+        margin: 15px 0;
+      }
+      .offer-details div {
+        margin: 5px 0;
+      }
+      .salutation {
+        font-weight: bold;
+        margin: 15px 0 10px 0;
+      }
+      .closing {
+        margin: 20px 0;
+        line-height: 1.6;
+      }
+      hr {
+        border: none;
+        height: 1.5px;
+        background-color: #000;
+        margin: 10px 0 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- Header -->
+      <div class="hdr-row">
+        <div class="hdr-left">
+          <strong style="font-size: 12px">{{company_name}}</strong>
+          <br />
+          <div class="company-details">
+            {{company_address}}<br />
+            {{company_phone}}<br />
+            {{company_email}}<br />
+            {{company_website}}<br />
+            <strong>GSTIN: {{company_gst}}</strong>
+          </div>
+        </div>
+        <div class="hdr-divider"></div>
+        <div class="hdr-right">
+          <img src="{{logo}}" alt="Company Logo" />
+        </div>
+      </div>
+
+      <hr />
+
+      <!-- Main Title -->
+      <h2 class="text-center">OFFER OF EMPLOYMENT</h2>
+
+      <!-- Offer Details Table -->
+      <table class="info">
+        <tr>
+          <td><b>OFFER REFERENCE :</b></td>
+          <td>{{offer_reference}}</td>
+          <td><b>OFFER DATE :</b></td>
+          <td>{{offer_date}}</td>
+        </tr>
+        <tr>
+          <td><b>CANDIDATE NAME :</b></td>
+          <td>{{candidate_name}}</td>
+          <td><b>EMAIL :</b></td>
+          <td>{{email}}</td>
+        </tr>
+        <tr>
+          <td><b>JOB TITLE :</b></td>
+          <td>{{job_title}}</td>
+          <td><b>DEPARTMENT :</b></td>
+          <td>{{department}}</td>
+        </tr>
+        <tr>
+          <td><b>EMPLOYMENT TYPE :</b></td>
+          <td>{{employment_type}}</td>
+          <td><b>REPORTING MANAGER :</b></td>
+          <td>{{reporting_manager}}</td>
+        </tr>
+        <tr>
+          <td><b>OFFERED SALARY :</b></td>
+          <td>{{offered_salary}}</td>
+          <td><b>WORK LOCATION :</b></td>
+          <td>{{work_location}}</td>
+        </tr>
+        <tr>
+          <td><b>JOINING DATE :</b></td>
+          <td>{{joining_date}}</td>
+          <td><b>OFFER STATUS :</b></td>
+          <td><strong>{{offer_status}}</strong></td>
+        </tr>
+      </table>
+
+      <!-- Salutation -->
+      <div class="salutation">
+        <p>Dear {{candidate_name}},</p>
+      </div>
+
+      <!-- Main Content -->
+      <div class="content-section">
+        <p>
+          We are pleased to offer you the position of
+          <span class="highlight">{{job_title}}</span> with
+          <span class="highlight">{{company_name}}</span>. This offer is
+          contingent upon satisfactory completion of all pre-employment
+          requirements.
+        </p>
+
+        <div class="section-title">TERMS OF EMPLOYMENT</div>
+
+        <div class="offer-details">
+          <div><strong>Position:</strong> {{job_title}}</div>
+          <div><strong>Department:</strong> {{department}}</div>
+          <div><strong>Employment Type:</strong> {{employment_type}}</div>
+          <div><strong>Reporting To:</strong> {{reporting_manager}}</div>
+          <div><strong>Work Location:</strong> {{work_location}}</div>
+          <div><strong>Joining Date:</strong> {{joining_date}}</div>
+        </div>
+
+        <div class="section-title">COMPENSATION</div>
+        <p>
+          Your annual compensation will be
+          <span class="highlight">{{offered_salary}}</span>
+          ({{salary_in_words}}) per annum, payable in accordance with the
+          company's standard payroll schedule.
+        </p>
+
+        <div class="section-title">BENEFITS</div>
+        <p>
+          As a full-time employee, you will be eligible to participate in our
+          benefits programs, which include:
+        </p>
+        <ul class="terms-list">
+          <li>Health insurance coverage</li>
+          <li>Provident Fund as per statutory requirements</li>
+          <li>Paid time off and holidays</li>
+          <li>Other benefits as per company policy</li>
+        </ul>
+
+        <div class="section-title">CONDITIONS OF EMPLOYMENT</div>
+        <ul class="terms-list">
+          <li>
+            This offer is subject to verification of your educational
+            qualifications and employment references
+          </li>
+          <li>
+            You will be required to comply with all company policies and
+            procedures
+          </li>
+          <li>
+            The first three months will be considered a probationary period
+          </li>
+          <li>
+            This employment is "at-will" and may be terminated by either party
+            at any time
+          </li>
+        </ul>
+      </div>
+
+      <!-- Closing -->
+      <div class="closing">
+        <p>
+          To accept this offer, please sign and return this letter by
+          {{sign_return_date}}.
+        </p>
+        <p>
+          We look forward to welcoming you to our team and are confident that
+          you will make valuable contributions to our company's success.
+        </p>
+        <p>Sincerely,</p>
+      </div>
+
+      <!-- Signature Section -->
+      <div class="signature-section">
+        <table style="width: 100%">
+          <tr>
+            <td style="width: 50%">
+              <div class="signature-block">
+                <div class="signature-line"></div>
+                <div><strong>{{candidate_name}}</strong></div>
+                <div>Candidate Signature</div>
+                <div>Date: ________________</div>
+              </div>
+            </td>
+            <td style="width: 50%; text-align: right">
+              <div class="signature-block">
+                <div class="signature-line"></div>
+                <div><strong>Authorized Signatory</strong></div>
+                <div>{{company_name}}</div>
+                <div>Date: {{offer_date}}</div>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Footer -->
+      <div class="footer">
+        <p>
+          This offer letter is confidential and intended only for the recipient.
+          Please return signed copy to HR Department.
+        </p>
+        <p class="reference">
+          Reference: {{offer_reference}} | Generated on: {{generated_date}}
+        </p>
+      </div>
+    </div>
+  </body>
+</html>
